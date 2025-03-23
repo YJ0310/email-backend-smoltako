@@ -4,34 +4,42 @@ const cors = require('cors');
 const { Resend } = require('resend');
 
 const app = express();
-const PORT = 3000;
-
-app.use(cors());
-app.use(bodyParser.json());
 
 // Initialize Resend
 const resend = new Resend('re_f5CQtbKR_4zLGsLV4wx3pmzr93EVGHdwR'); // Replace with your Resend API key
 
-// Handle form submission
-app.post('/send-message', async (req, res) => {
+app.use(cors());
+app.use(express.json());
+
+app.post('/send-email', async (req, res) => {
   const { name, email, message } = req.body;
 
+  // Validate the request
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Name, email, and message are required' });
+  }
+
   try {
-    const data = await resend.emails.send({
-      from: 'sites.support@smoltako.space', // Replace with your verified email or domain
-      to: 'sites.support@smoltako.space', // Your support email
+    const { data, error } = await resend.emails.send({
+      from: 'support@smoltako.space', // Replace with your email
+      to: 'support@smoltako.space', // Replace with your support email
       subject: `New Message from ${name}`,
-      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
+      html: `<p>Name: ${name}</p><p>Email: ${email}</p><p>Message: ${message}</p>`,
     });
 
-    console.log('Email sent:', data);
-    res.status(200).json({ message: 'Message sent successfully!' });
-  } catch (error) {
-    console.error('Error sending email:', error);
-    res.status(500).json({ message: 'Failed to send message.' });
+    if (error) {
+      console.error('Error sending email:', error);
+      return res.status(500).json({ error: 'Failed to send email' });
+    }
+
+    res.status(200).json({ success: true, message: 'Email sent successfully', data });
+  } catch (err) {
+    console.error('Error sending email:', err);
+    res.status(500).json({ error: 'Failed to send email' });
   }
 });
 
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
