@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const nodemailer = require('nodemailer');
 const cors = require('cors');
+const { Resend } = require('resend');
 
 const app = express();
 const PORT = 3000;
@@ -9,35 +9,27 @@ const PORT = 3000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Email configuration
-const transporter = nodemailer.createTransport({
-  service: 'gmail', // Use your email service (e.g., Gmail, Outlook)
-  auth: {
-    user: '15sekyinjia@gmail.com', // Your email address
-    pass: '040310021023', // Your email password or app-specific password
-  },
-});
+// Initialize Resend
+const resend = new Resend('re_f5CQtbKR_4zLGsLV4wx3pmzr93EVGHdwR'); // Replace with your Resend API key
 
 // Handle form submission
-app.post('/send-message', (req, res) => {
+app.post('/send-message', async (req, res) => {
   const { name, email, message } = req.body;
 
-  const mailOptions = {
-    from: email,
-    to: 'sites.support@smoltako.space', // Your support email
-    subject: `New Message from ${name}`,
-    text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
-  };
+  try {
+    const data = await resend.emails.send({
+      from: 'sites.support@smoltako.space', // Replace with your verified email or domain
+      to: 'sites.support@smoltako.space', // Your support email
+      subject: `New Message from ${name}`,
+      text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
+    });
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      console.error(error);
-      res.status(500).send('Error sending message');
-    } else {
-      console.log('Email sent: ' + info.response);
-      res.status(200).send('Message sent successfully');
-    }
-  });
+    console.log('Email sent:', data);
+    res.status(200).json({ message: 'Message sent successfully!' });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ message: 'Failed to send message.' });
+  }
 });
 
 app.listen(PORT, () => {
